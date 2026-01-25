@@ -18,13 +18,19 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.5.3", features = [] }
 
 [dependencies]
-serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-log = "0.4"
+# Workspace dependencies
+serde_json.workspace = true
+serde.workspace = true
+log.workspace = true
+sqlx.workspace = true
+tokio.workspace = true
+uuid.workspace = true
+typeshare.workspace = true
+anyhow.workspace = true
+
+# Tauri-specific dependencies (not in workspace)
 tauri = { version = "2.9.5", features = [] }
 tauri-plugin-log = "2"
-sqlx = { version = "0.8.6", features = ["sqlite", "runtime-tokio"] }
-tokio = { version = "1.49.0", features = ["full"] }
-uuid = { version = "1.19.0", features = ["serde", "v4"] }
-typeshare = "1.0.5"
-anyhow = "1.0"
+
+# Shared library
+shared = { path = "../crates/shared" }

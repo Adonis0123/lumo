@@ -4,39 +4,92 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Lumo is a hybrid desktop application built with Tauri (Rust backend) and Next.js (React frontend). The architecture combines a Rust-based desktop application shell with a statically-exported Next.js web interface.
+Lumo is a Claude Code usage monitoring application that collects telemetry data via OpenTelemetry Protocol (OTLP) and displays it in a desktop dashboard. The architecture consists of:
+
+1. **Daemon** (`crates/daemon/`): OTLP receiver service that collects metrics/events from Claude Code
+2. **Tauri App** (`src-tauri/`): Desktop application shell with native OS integration
+3. **Frontend** (`packages/ui/`): React-based dashboard UI (pnpm workspace package `@lumo/ui`)
+4. **Shared Library** (`crates/shared/`): Common database layer used by daemon and Tauri app
+
+## Module Documentation
+
+Each module has its own CLAUDE.md with detailed patterns and guidelines:
+
+- [`crates/daemon/CLAUDE.md`](crates/daemon/CLAUDE.md) - Daemon service architecture
+- [`crates/shared/CLAUDE.md`](crates/shared/CLAUDE.md) - Database layer and entity patterns
+- [`src-tauri/CLAUDE.md`](src-tauri/CLAUDE.md) - Tauri backend and IPC commands
+- [`packages/ui/CLAUDE.md`](packages/ui/CLAUDE.md) - Frontend architecture and component patterns
 
 ## Architecture
 
-### Dual Runtime Model
+### System Overview
 
-This project uses a unique dual-runtime architecture:
+```
+Claude Code (with OTLP exporter)
+        │
+        ▼ OTLP/HTTP (JSON)
+┌───────────────────┐
+│  lumo-daemon      │ ← Standalone service on port 4318
+│  (crates/daemon)  │
+└────────┬──────────┘
+         │
+         ▼
+┌───────────────────┐
+│  SQLite Database  │ ← ~/.lumo/lumo.db
+│  (lumo-shared)    │
+└────────┬──────────┘
+         │
+         ▼
+┌───────────────────┐
+│  Tauri App        │ ← Desktop application
+│  (src-tauri)      │
+└────────┬──────────┘
+         │
+         ▼
+┌───────────────────┐
+│  React Dashboard  │ ← Next.js frontend
+│  (packages/ui)    │
+└───────────────────┘
+```
 
-1. **Tauri Backend** (`src-tauri/`): Rust-based native desktop shell
-   - Provides native OS integration and desktop window management
-   - Handles system-level operations and security boundaries
-   - Entry point: `src-tauri/src/main.rs` calls `app_lib::run()` from `lib.rs`
-   - Logging enabled in debug mode via `tauri-plugin-log`
-   - Database layer using SQLx with SQLite
+### Rust Crates
+
+1. **Daemon** (`crates/daemon/`): OTLP telemetry receiver
+   - Standalone HTTP service using Axum
+   - Receives metrics/logs from Claude Code via OTLP protocol
+   - Persists data to SQLite via shared library
+   - Runs independently of Tauri app
+
+2. **Shared Library** (`crates/shared/`): Common database layer
+   - Entity definitions with Row/Domain type split
+   - Repository pattern for data access
+   - Migrations and connection management
+   - Used by both daemon and Tauri app
+
+3. **Tauri Backend** (`src-tauri/`): Desktop application shell
+   - Native OS integration and window management
+   - IPC commands for frontend communication
+   - Reads telemetry data from shared database
    - Async operations powered by Tokio runtime
 
-2. **Next.js Frontend** (root directory): React-based UI
-   - Configured for Static Site Generation (SSG) with `output: 'export'`
-   - Uses App Router (files in `app/` directory)
-   - Builds to `out/` directory which Tauri serves as `frontendDist`
-   - TypeScript path alias: `@/*` maps to project root
-   - Communicates with backend via Tauri IPC through Bridge pattern
+### Frontend Package
+
+**UI** (`packages/ui/`): Next.js dashboard
+- Next.js 16 with App Router (SSG mode)
+- TanStack Query + Tauri IPC for data fetching
+- Tailwind CSS v4 + shadcn/ui components
+- See [`packages/ui/CLAUDE.md`](packages/ui/CLAUDE.md) for detailed patterns
 
 ### Database Layer Architecture
 
-The database layer follows a clean, layered pattern inspired by query-box:
+The database layer follows a clean, layered pattern:
 
-1. **Entities** (`src-tauri/src/database/entities/`): Data models
+1. **Entities** (`crates/shared/src/database/entities/`): Data models
    - `*Row` structs map to database tables (with `#[derive(FromRow)]`)
    - Domain models with `#[typeshare]` for TypeScript generation
    - `TryFrom<Row>` conversions handle parsing and validation
 
-2. **Repositories** (`src-tauri/src/database/repositories/`): Data access layer
+2. **Repositories** (`crates/shared/src/database/repositories/`): Data access layer
    - Encapsulate all SQL queries using SQLx
    - Async methods returning `Result<T, anyhow::Error>`
    - Use `QueryBuilder` for dynamic updates
@@ -46,118 +99,106 @@ The database layer follows a clean, layered pattern inspired by query-box:
    - Access `SqlitePool` from app state
    - Return `Result<T, String>` for serialization
 
-4. **Bridges** (`src/bridges/`): Frontend API wrappers
+4. **Bridges** (`packages/ui/src/bridges/`): Frontend API wrappers
    - TypeScript classes wrapping `invoke()` calls
    - Type-safe interfaces using generated types
    - Centralize all IPC communication
 
-5. **Migrations** (`src-tauri/migrations/`): Schema versioning
+5. **Migrations** (`crates/shared/migrations/`): Schema versioning
    - SQL files with timestamp prefixes
    - Executed automatically on startup via `sqlx::migrate!()`
 
-### Build Flow
-
-The build process has two distinct phases:
-
-1. **Frontend Build**: Next.js builds a static site to `out/`
-2. **Tauri Bundle**: Packages the static frontend with Rust backend into native executable
-
-Key configuration:
-- `next.config.ts`: Sets `output: 'export'` for SSG, configures `assetPrefix` for dev/prod
-- `src-tauri/tauri.conf.json`: Points to `out/` as `frontendDist`, runs Next.js dev server at `localhost:3000`
-- Next.js Image component requires `unoptimized: true` due to SSG constraints
+---
 
 ## Development Commands
 
-### Frontend Development
+### Full Stack Development
 ```bash
-pnpm dev          # Start Next.js dev server on localhost:3000
-pnpm build        # Build Next.js static export to out/
-pnpm lint         # Run ESLint
-```
-
-### Tauri Development
-```bash
-pnpm tauri:dev    # Run Tauri with type generation (recommended for full stack dev)
-pnpm tauri dev    # Run Tauri in development mode (starts Next.js dev server automatically)
+pnpm tauri:dev    # Run Tauri with type generation (recommended)
+pnpm tauri dev    # Run Tauri in development mode
 pnpm tauri build  # Build production Tauri application bundle
 ```
 
-### Database & Type Generation
+### Frontend Only
 ```bash
-pnpm generate-types  # Generate TypeScript types from Rust structs using typeshare
+pnpm dev          # Start Next.js dev server on localhost:3000
+pnpm build        # Build Next.js static export
+pnpm lint         # Run ESLint
+```
+
+### Daemon Development
+```bash
+cargo run -p lumo-daemon              # Run daemon in development
+RUST_LOG=debug cargo run -p lumo-daemon  # Run with debug logging
+cargo build -p lumo-daemon --release  # Build release binary
+```
+
+### Type Generation
+```bash
+pnpm generate-types  # Generate TypeScript types from Rust structs
 ```
 
 Note: `pnpm tauri:dev` automatically runs type generation before starting.
 
-### Integrated Development
-When running `pnpm tauri dev`:
-- Tauri executes `beforeDevCommand` which runs `pnpm dev`
-- Next.js dev server starts on `localhost:3000`
-- Tauri window loads from the dev server with hot reload
-- Asset prefix is set to `http://localhost:3000` (or TAURI_DEV_HOST if set)
+---
 
-When running `pnpm tauri build`:
-- Tauri executes `beforeBuildCommand` which runs `pnpm build`
-- Next.js exports static files to `out/`
-- Tauri bundles the static files with the Rust binary
+## Build Flow
 
-## Technology Stack
+The build process has two distinct phases:
 
-- **Frontend**: Next.js 16.1.4, React 19, TypeScript, Tailwind CSS v4
-- **Backend**: Tauri 2.9.5, Rust (edition 2021, min version 1.77.2)
-- **Database**: SQLite with SQLx 0.8.3 (async SQL library)
-- **Runtime**: Tokio 1.44.0 (async runtime for Rust)
-- **Type Generation**: Typeshare 1.0.3 (Rust → TypeScript type sync)
-- **Package Manager**: pnpm (workspace configuration in `pnpm-workspace.yaml`)
-- **Styling**: Tailwind v4 with PostCSS, Geist font family (sans & mono)
+1. **Frontend Build**: Next.js builds a static site to `packages/ui/out/`
+2. **Tauri Bundle**: Packages the static frontend with Rust backend into native executable
 
-## Key Constraints
+Key configuration:
+- `packages/ui/next.config.ts`: Sets `output: 'export'` for SSG
+- `src-tauri/tauri.conf.json`: Points to `../packages/ui/out` as `frontendDist`
 
-1. **SSG-Only Mode**: Next.js is configured for static export, so SSR/ISR features are unavailable
-2. **Image Optimization**: Next.js Image component requires `unoptimized: true`
-3. **Dual Commands**: Always use `pnpm tauri dev` for full app development, not just `pnpm dev`
-4. **Asset Paths**: Development uses absolute URLs to localhost:3000, production uses relative paths
+---
 
 ## File Structure
 
-- `app/`: Next.js App Router pages and layouts
-- `src/`: Frontend source code
-  - `bridges/`: Tauri IPC wrappers (e.g., `user-bridge.ts`)
-  - `hooks/`: React custom hooks (e.g., `useUsers.ts`)
-  - `generated/`: Auto-generated TypeScript types from Rust
-- `src-tauri/`: Rust source code and Tauri configuration
-  - `src/lib.rs`: Main Tauri application setup with database initialization
-  - `src/main.rs`: Entry point with Tokio runtime
-  - `src/commands/`: Tauri command handlers (IPC layer)
-  - `src/database/`: Database layer
-    - `connection.rs`: SQLite pool setup and migrations
-    - `entities/`: Data models (Row structs + domain models)
-    - `repositories/`: Data access layer (CRUD operations)
-  - `migrations/`: SQL migration files (timestamped)
-  - `tauri.conf.json`: Tauri configuration (window size, bundle settings)
-  - `typeshare.toml`: Type generation configuration
-  - `Cargo.toml`: Rust dependencies
-- `scripts/`: Build and generation scripts
-  - `generate-types.js`: Runs typeshare for type generation
-- `public/`: Static assets served by Next.js
-- `out/`: Generated static build (gitignored, created by `next build`)
+```
+lumo/
+├── packages/                  # pnpm workspace packages
+│   └── ui/                    # Next.js frontend (@lumo/ui)
+│       ├── app/               # Next.js App Router
+│       ├── components/        # React components
+│       ├── src/               # Frontend source (bridges, hooks, types)
+│       ├── scripts/           # UI build scripts
+│       └── CLAUDE.md          # Frontend module docs
+├── crates/                    # Cargo workspace crates
+│   ├── daemon/                # OTLP receiver service
+│   │   ├── src/               # Daemon source code
+│   │   └── CLAUDE.md          # Daemon module docs
+│   └── shared/                # Shared database library
+│       ├── src/database/      # Entities and repositories
+│       ├── migrations/        # SQL migrations
+│       └── CLAUDE.md          # Shared module docs
+├── src-tauri/                 # Tauri desktop app
+│   ├── src/                   # Tauri backend source
+│   ├── tauri.conf.json        # Tauri configuration
+│   └── CLAUDE.md              # Tauri module docs
+├── scripts/                   # Build scripts
+│   ├── install-daemon.sh      # Daemon installation
+│   └── uninstall-daemon.sh    # Daemon removal
+├── pnpm-workspace.yaml        # pnpm workspace config
+├── Cargo.toml                 # Cargo workspace config
+└── package.json               # Root package.json (scripts)
+```
+
+---
 
 ## Working with the Database
 
-See `DATABASE.md` for comprehensive guide on:
-- Database architecture and patterns
-- Creating new tables and entities
-- Writing repositories and commands
-- Frontend integration with bridges and hooks
-- Migration management
-
 Quick pattern for adding a new feature:
-1. Create migration in `src-tauri/migrations/`
-2. Define entity in `src-tauri/src/database/entities/`
-3. Create repository in `src-tauri/src/database/repositories/`
+
+1. Create migration in `crates/shared/migrations/`
+2. Define entity in `crates/shared/src/database/entities/`
+3. Create repository in `crates/shared/src/database/repositories/`
 4. Add commands in `src-tauri/src/commands/`
 5. Register commands in `app_commands!` macro
 6. Run `pnpm generate-types` to sync types
-7. Create bridge in `src/bridges/`
-8. Create hook in `src/hooks/` (optional)
+7. Create bridge in `packages/ui/src/bridges/`
+8. Create hook in `packages/ui/src/hooks/` (optional)
+
+See individual module CLAUDE.md files for detailed patterns.

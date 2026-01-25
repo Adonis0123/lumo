@@ -3,21 +3,31 @@
   "ui": "stream",
   "tasks": {
     "generate-types": {
-      "inputs": ["./src-tauri/src/"],
-      "outputs": ["src/generated"],
+      "inputs": [
+        "scripts/generate-types.js",
+        "../../src-tauri/src/**/*.rs",
+        "../../src-tauri/typeshare.toml"
+      ],
+      "outputs": ["src/generated/typeshare-types.ts"],
       "outputLogs": "new-only"
     },
     "build": {
       "dependsOn": ["generate-types"],
-      "inputs": ["src/"],
-      "outputs": ["dist/"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": ["out/**", ".next/**"],
       "outputLogs": "new-only"
     },
+    "dev": {
+      "dependsOn": ["generate-types"],
+      "persistent": true
+    },
     "lint": {
-      "dependsOn": ["generate-types"]
+      "dependsOn": ["generate-types"],
+      "outputs": []
     },
     "check-types": {
-      "dependsOn": ["generate-types"]
+      "dependsOn": ["generate-types"],
+      "outputs": []
     }
   }
 }

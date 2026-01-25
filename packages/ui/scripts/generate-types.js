@@ -6,8 +6,8 @@ const fs = require('fs')
 const path = require('path')
 
 const config = {
-  configPath: path.join(__dirname, '../src-tauri/typeshare.toml'),
-  rustSrcPath: path.join(__dirname, '../src-tauri/src'),
+  configPath: path.join(__dirname, '../../../src-tauri/typeshare.toml'),
+  rustSrcPath: path.join(__dirname, '../../../src-tauri/src'),
   outputDir: path.join(__dirname, '../src/generated'),
   outputFilename: 'typeshare-types.ts',
   runPrettier: true,
@@ -63,6 +63,7 @@ function formatGeneratedCode(filePath) {
       console.log('💅 Formatting generated code...')
       execSync(`npx prettier --write "${filePath}"`, {
         stdio: config.debug ? 'inherit' : 'pipe',
+        cwd: path.join(__dirname, '..'),
       })
     } else {
       console.log('⚠️ Prettier not found. Skipping code formatting.')

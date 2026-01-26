@@ -32,8 +32,12 @@ const chartConfig = {
     color: "hsl(var(--chart-2))",
   },
   cacheReadTokens: {
-    label: "Cache",
+    label: "Cache Read",
     color: "hsl(var(--chart-3))",
+  },
+  cacheCreationTokens: {
+    label: "Cache Creation",
+    color: "hsl(var(--chart-4))",
   },
 } satisfies ChartConfig;
 
@@ -115,6 +119,24 @@ export function TokenChart({ timeRange }: TokenChartProps) {
                   stopOpacity={0.05}
                 />
               </linearGradient>
+              <linearGradient
+                id="cacheCreationGradient"
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                <stop
+                  offset="0%"
+                  stopColor="var(--color-cacheCreationTokens)"
+                  stopOpacity={0.4}
+                />
+                <stop
+                  offset="100%"
+                  stopColor="var(--color-cacheCreationTokens)"
+                  stopOpacity={0.05}
+                />
+              </linearGradient>
             </defs>
             <CartesianGrid
               strokeDasharray="3 3"
@@ -185,6 +207,14 @@ export function TokenChart({ timeRange }: TokenChartProps) {
               stroke="var(--color-cacheReadTokens)"
               strokeWidth={2}
               fill="url(#cacheGradient)"
+            />
+            <Area
+              type="monotone"
+              dataKey="cacheCreationTokens"
+              name="cacheCreationTokens"
+              stroke="var(--color-cacheCreationTokens)"
+              strokeWidth={2}
+              fill="url(#cacheCreationGradient)"
             />
           </AreaChart>
         </ChartContainer>

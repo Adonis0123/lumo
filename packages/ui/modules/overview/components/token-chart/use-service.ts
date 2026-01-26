@@ -12,7 +12,12 @@ export function useService(timeRange: TimeRange) {
 
   const totalTokens =
     data?.reduce(
-      (sum, d) => sum + d.inputTokens + d.outputTokens + d.cacheReadTokens,
+      (sum, d) =>
+        sum +
+        d.inputTokens +
+        d.outputTokens +
+        d.cacheReadTokens +
+        d.cacheCreationTokens,
       0
     ) ?? 0;
 

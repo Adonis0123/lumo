@@ -15,4 +15,5 @@ pub struct UsageTrend {
     pub input_tokens: i32,
     pub output_tokens: i32,
     pub cache_read_tokens: i32,
+    pub cache_creation_tokens: i32,
 }

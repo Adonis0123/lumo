@@ -38,7 +38,8 @@ impl TrendsService {
                 COALESCE(SUM(cost_usd), 0) as cost,
                 COALESCE(SUM(input_tokens), 0) as input_tokens,
                 COALESCE(SUM(output_tokens), 0) as output_tokens,
-                COALESCE(SUM(cache_read_tokens), 0) as cache_read_tokens
+                COALESCE(SUM(cache_read_tokens), 0) as cache_read_tokens,
+                COALESCE(SUM(cache_creation_tokens), 0) as cache_creation_tokens
             FROM events
             WHERE timestamp >= ? AND timestamp <= ?
                 AND name = 'claude_code.api_request'
@@ -62,6 +63,7 @@ impl TrendsService {
                 input_tokens: r.input_tokens as i32,
                 output_tokens: r.output_tokens as i32,
                 cache_read_tokens: r.cache_read_tokens as i32,
+                cache_creation_tokens: r.cache_creation_tokens as i32,
             })
             .collect())
     }
@@ -100,4 +102,5 @@ struct UsageTrendRow {
     input_tokens: i64,
     output_tokens: i64,
     cache_read_tokens: i64,
+    cache_creation_tokens: i64,
 }

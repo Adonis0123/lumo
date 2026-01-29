@@ -72,7 +72,7 @@ export function SessionDetail({ sessionPath }: SessionDetailModuleProps) {
         </div>
       ) : (
         <div className="relative flex-1 overflow-hidden">
-          <div ref={scrollRef} className="h-full overflow-auto">
+          <div ref={scrollRef} className="h-full overflow-auto pb-6">
             <div
               style={{
                 height: `${virtualizer.getTotalSize()}px`,

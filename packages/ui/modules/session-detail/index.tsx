@@ -4,6 +4,8 @@ import { useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { CardError } from "@/components/card-error";
+import { ScrollToBottomButton } from "@/components/scroll-to-bottom";
+import { useScrollToBottom } from "@/hooks/use-scroll-to-bottom";
 import { MessageItem, SessionHeader, SessionDetailSkeleton } from "./components";
 import { useService } from "./use-service";
 import type { SessionDetailModuleProps } from "./types";
@@ -11,19 +13,32 @@ import type { SessionDetailModuleProps } from "./types";
 export function SessionDetail({ sessionPath }: SessionDetailModuleProps) {
   const router = useRouter();
   const { sessionDetail, isLoading, error } = useService(sessionPath);
-  const parentRef = useRef<HTMLDivElement>(null);
 
   const handleBack = useCallback(() => {
     router.push("/sessions");
   }, [router]);
 
   const messages = sessionDetail?.messages ?? [];
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const virtualizer = useVirtualizer({
     count: messages.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 120, // Estimated average message height
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 120,
     overscan: 10,
+  });
+
+  const handleScrollToBottom = useCallback(() => {
+    virtualizer.scrollToIndex(messages.length - 1, {
+      align: "end",
+      behavior: "smooth",
+    });
+  }, [virtualizer, messages.length]);
+
+  const { showScrollToBottom, scrollToBottom } = useScrollToBottom({
+    scrollRef,
+    itemCount: messages.length,
+    onScrollToBottom: handleScrollToBottom,
   });
 
   if (isLoading) {
@@ -56,31 +71,38 @@ export function SessionDetail({ sessionPath }: SessionDetailModuleProps) {
           No messages in this session
         </div>
       ) : (
-        <div ref={parentRef} className="flex-1 overflow-auto">
-          <div
-            style={{
-              height: `${virtualizer.getTotalSize()}px`,
-              width: "100%",
-              position: "relative",
-            }}
-          >
-            {virtualizer.getVirtualItems().map((virtualItem) => (
-              <div
-                key={virtualItem.key}
-                data-index={virtualItem.index}
-                ref={virtualizer.measureElement}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  transform: `translateY(${virtualItem.start}px)`,
-                }}
-              >
-                <MessageItem message={messages[virtualItem.index]} />
-              </div>
-            ))}
+        <div className="relative flex-1 overflow-hidden">
+          <div ref={scrollRef} className="h-full overflow-auto">
+            <div
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                width: "100%",
+                position: "relative",
+              }}
+            >
+              {virtualizer.getVirtualItems().map((virtualItem) => (
+                <div
+                  key={virtualItem.key}
+                  data-index={virtualItem.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                >
+                  <MessageItem message={messages[virtualItem.index]} />
+                </div>
+              ))}
+            </div>
           </div>
+
+          <ScrollToBottomButton
+            visible={showScrollToBottom}
+            onClick={scrollToBottom}
+          />
         </div>
       )}
     </div>

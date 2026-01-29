@@ -20,6 +20,9 @@ pub struct ClaudeSession {
     pub message_count: i32,
     pub created: String,
     pub modified: String,
+    /// Actual file modification time (more accurate than modified field)
+    #[serde(default)]
+    pub last_updated: Option<String>,
     #[serde(default)]
     pub git_branch: Option<String>,
     pub project_path: String,
@@ -61,6 +64,10 @@ pub struct ClaudeSessionIndexEntry {
 
 impl From<ClaudeSessionIndexEntry> for ClaudeSession {
     fn from(entry: ClaudeSessionIndexEntry) -> Self {
+        let last_updated = entry.file_mtime.and_then(|ms| {
+            chrono::DateTime::from_timestamp_millis(ms).map(|dt| dt.to_rfc3339())
+        });
+
         Self {
             session_id: entry.session_id,
             full_path: entry.full_path,
@@ -69,6 +76,7 @@ impl From<ClaudeSessionIndexEntry> for ClaudeSession {
             message_count: entry.message_count.unwrap_or(0),
             created: entry.created,
             modified: entry.modified,
+            last_updated,
             git_branch: entry.git_branch,
             project_path: entry.project_path,
             is_sidechain: entry.is_sidechain,

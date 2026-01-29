@@ -61,7 +61,11 @@ impl ClaudeSessionService {
             .collect();
 
         // Sort by modified date (newest first)
-        sessions.sort_by(|a, b| b.modified.cmp(&a.modified));
+        sessions.sort_by(|a, b| {
+            let a_time = a.last_updated.as_deref().unwrap_or(&a.modified);
+            let b_time = b.last_updated.as_deref().unwrap_or(&b.modified);
+            b_time.cmp(a_time)
+        });
 
         Ok(sessions)
     }
@@ -99,7 +103,11 @@ impl ClaudeSessionService {
         }
 
         // Sort by modified date (newest first)
-        all_sessions.sort_by(|a, b| b.modified.cmp(&a.modified));
+        all_sessions.sort_by(|a, b| {
+            let a_time = a.last_updated.as_deref().unwrap_or(&a.modified);
+            let b_time = b.last_updated.as_deref().unwrap_or(&b.modified);
+            b_time.cmp(a_time)
+        });
 
         Ok(all_sessions)
     }
@@ -145,6 +153,7 @@ impl ClaudeSessionService {
                 message_count: 0,
                 created: String::new(),
                 modified: String::new(),
+                last_updated: None,
                 git_branch: None,
                 project_path: parent.to_string_lossy().to_string(),
                 is_sidechain: false,

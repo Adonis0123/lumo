@@ -67,7 +67,7 @@ export function SessionList({ sessions, onSelectSession }: SessionListProps) {
                 {/* Time ago */}
                 <div className="flex items-center gap-1">
                   <Clock className="size-3" />
-                  <span>{formatTimeAgo(session.modified)}</span>
+                  <span>{formatTimeAgo(session.lastUpdated || session.modified)}</span>
                 </div>
               </div>
 

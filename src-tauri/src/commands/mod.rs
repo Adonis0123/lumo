@@ -1,8 +1,10 @@
+pub mod claude_session_commands;
 pub mod session_commands;
 pub mod stats_commands;
 pub mod trends_commands;
 pub mod user_commands;
 
+pub use claude_session_commands::*;
 pub use session_commands::*;
 pub use stats_commands::*;
 pub use trends_commands::*;
@@ -28,6 +30,10 @@ macro_rules! app_commands {
             commands::get_token_stats,
             // Trends commands
             commands::get_usage_trends,
+            // Claude session commands
+            commands::get_claude_sessions,
+            commands::get_claude_sessions_for_project,
+            commands::get_claude_session_detail,
         ]
     };
 }

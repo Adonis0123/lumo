@@ -32,6 +32,7 @@ chrono.workspace = true
 # Tauri-specific dependencies (not in workspace)
 tauri = { version = "2.9.5", features = [] }
 tauri-plugin-log = "2"
+dirs = "5"
 
 # Shared library
 shared = { path = "../crates/shared" }

@@ -6,7 +6,7 @@ use anyhow::Result;
 use chrono::{Datelike, Local, TimeZone};
 use sqlx::SqlitePool;
 
-use crate::types::{TimeRange, UsageTrend};
+use crate::types::{CostByModelTrend, TimeRange, UsageTrend};
 
 /// Service for trends operations
 pub struct TrendsService;
@@ -26,7 +26,7 @@ impl TrendsService {
                 "strftime('%Y-%m-%d %H', datetime(timestamp / 1000, 'unixepoch', 'localtime'))",
             ),
             TimeRange::Week | TimeRange::Month => (
-                "%a",
+                "%Y-%m-%d",
                 "strftime('%Y-%m-%d', datetime(timestamp / 1000, 'unixepoch', 'localtime'))",
             ),
         };
@@ -68,6 +68,58 @@ impl TrendsService {
             .collect())
     }
 
+    /// Get cost trends grouped by date and model
+    pub async fn get_cost_by_model_trends(
+        pool: &SqlitePool,
+        time_range: TimeRange,
+    ) -> Result<Vec<CostByModelTrend>> {
+        let (start_time, end_time) = Self::get_time_range_bounds(time_range);
+
+        let format_str = match time_range {
+            TimeRange::Today => "%H:00",
+            TimeRange::Week | TimeRange::Month => "%Y-%m-%d",
+        };
+
+        let group_expr = match time_range {
+            TimeRange::Today => {
+                "strftime('%Y-%m-%d %H', datetime(timestamp / 1000, 'unixepoch', 'localtime'))"
+            }
+            TimeRange::Week | TimeRange::Month => {
+                "strftime('%Y-%m-%d', datetime(timestamp / 1000, 'unixepoch', 'localtime'))"
+            }
+        };
+
+        let query = format!(
+            r#"
+            SELECT
+                strftime('{}', datetime(timestamp / 1000, 'unixepoch', 'localtime')) as date,
+                COALESCE(model, 'unknown') as model,
+                COALESCE(SUM(cost_usd), 0) as cost
+            FROM events
+            WHERE timestamp >= ? AND timestamp <= ?
+                AND name = 'claude_code.api_request'
+            GROUP BY {}, model
+            ORDER BY MIN(timestamp) ASC, model ASC
+            "#,
+            format_str, group_expr
+        );
+
+        let rows: Vec<CostByModelRow> = sqlx::query_as(&query)
+            .bind(start_time)
+            .bind(end_time)
+            .fetch_all(pool)
+            .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|r| CostByModelTrend {
+                date: r.date,
+                model: r.model,
+                cost: r.cost as f32,
+            })
+            .collect())
+    }
+
     /// Get time range start and end timestamps (in milliseconds)
     fn get_time_range_bounds(time_range: TimeRange) -> (i64, i64) {
         let now = Local::now();
@@ -93,6 +145,13 @@ impl TrendsService {
         let start_time = Local.from_local_datetime(&start).unwrap().timestamp_millis();
         (start_time, end_time)
     }
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct CostByModelRow {
+    date: String,
+    model: String,
+    cost: f64,
 }
 
 #[derive(Debug, sqlx::FromRow)]

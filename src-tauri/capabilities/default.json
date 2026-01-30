@@ -13,6 +13,9 @@
     "core:window:allow-start-dragging",
     "core:window:allow-show",
     "core:window:allow-set-always-on-top",
-    "core:window:allow-set-focus"
+    "core:window:allow-set-focus",
+    "clipboard-manager:allow-write-image",
+    "dialog:allow-save",
+    "dialog:default"
   ]
 }

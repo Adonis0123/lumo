@@ -30,6 +30,11 @@
   --chart-3: 187 85% 43%;
   --chart-4: 38 92% 50%;
   --chart-5: 346 77% 55%;
+  --heatmap-0: hsl(240 5% 93%);
+  --heatmap-1: hsl(120 40% 78%);
+  --heatmap-2: hsl(120 45% 58%);
+  --heatmap-3: hsl(120 50% 40%);
+  --heatmap-4: hsl(120 55% 28%);
   --sidebar: hsl(0 0% 98%);
   --sidebar-foreground: hsl(240 5.3% 26.1%);
   --sidebar-primary: hsl(240 5.9% 10%);
@@ -65,6 +70,11 @@
   --chart-3: 187 85% 52%;
   --chart-4: 38 92% 58%;
   --chart-5: 346 77% 62%;
+  --heatmap-0: hsl(240 4% 18%);
+  --heatmap-1: hsl(120 35% 22%);
+  --heatmap-2: hsl(120 40% 32%);
+  --heatmap-3: hsl(120 45% 44%);
+  --heatmap-4: hsl(120 50% 55%);
   --sidebar: hsl(240 5.9% 10%);
   --sidebar-foreground: hsl(240 4.8% 95.9%);
   --sidebar-primary: hsl(224.3 76.3% 48%);
@@ -118,16 +128,9 @@
 
 @layer base {
   * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
-@layer base {
-  * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
   }
   body {
     @apply bg-background text-foreground;

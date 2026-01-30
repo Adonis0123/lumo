@@ -19,12 +19,14 @@ impl MetricRepository {
                 id, session_id, name, timestamp, value,
                 metric_type, model, tool, decision, language,
                 account_uuid, organization_id, terminal_type, app_version,
-                resource
+                resource,
+                user_id, user_email, unit, description
             ) VALUES (
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, ?,
-                ?
+                ?,
+                ?, ?, ?, ?
             )
             "#,
         )
@@ -43,6 +45,10 @@ impl MetricRepository {
         .bind(&metric.terminal_type)
         .bind(&metric.app_version)
         .bind(&metric.resource)
+        .bind(&metric.user_id)
+        .bind(&metric.user_email)
+        .bind(&metric.unit)
+        .bind(&metric.description)
         .execute(pool)
         .await?;
 

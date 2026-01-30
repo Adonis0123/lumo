@@ -23,7 +23,8 @@ impl EventRepository {
                 tool_name, tool_decision, decision_source, tool_parameters,
                 prompt_length, prompt,
                 account_uuid, organization_id, terminal_type, app_version,
-                resource
+                resource,
+                user_id, user_email, event_sequence, tool_result_size_bytes
             ) VALUES (
                 ?, ?, ?, ?,
                 ?, ?, ?,
@@ -32,7 +33,8 @@ impl EventRepository {
                 ?, ?, ?, ?,
                 ?, ?,
                 ?, ?, ?, ?,
-                ?
+                ?,
+                ?, ?, ?, ?
             )
             "#,
         )
@@ -62,6 +64,10 @@ impl EventRepository {
         .bind(&event.terminal_type)
         .bind(&event.app_version)
         .bind(&event.resource)
+        .bind(&event.user_id)
+        .bind(&event.user_email)
+        .bind(event.event_sequence)
+        .bind(event.tool_result_size_bytes)
         .execute(pool)
         .await?;
 

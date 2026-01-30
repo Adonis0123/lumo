@@ -24,6 +24,10 @@ pub struct MetricRow {
     pub app_version: Option<String>,
     pub resource: Option<String>,
     pub received_at: String,
+    pub user_id: Option<String>,
+    pub user_email: Option<String>,
+    pub unit: Option<String>,
+    pub description: Option<String>,
 }
 
 /// Metric entity for internal use
@@ -53,6 +57,14 @@ pub struct Metric {
     pub terminal_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub app_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unit: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     pub received_at: String,
 }
 
@@ -74,6 +86,10 @@ pub struct NewMetric {
     pub terminal_type: Option<String>,
     pub app_version: Option<String>,
     pub resource: Option<String>,
+    pub user_id: Option<String>,
+    pub user_email: Option<String>,
+    pub unit: Option<String>,
+    pub description: Option<String>,
 }
 
 impl From<MetricRow> for Metric {
@@ -93,6 +109,10 @@ impl From<MetricRow> for Metric {
             organization_id: row.organization_id,
             terminal_type: row.terminal_type,
             app_version: row.app_version,
+            user_id: row.user_id,
+            user_email: row.user_email,
+            unit: row.unit,
+            description: row.description,
             received_at: row.received_at,
         }
     }

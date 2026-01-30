@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { UsageTrend, TimeRange } from "../generated/typeshare-types";
+import type { UsageTrend, CostByModelTrend, TimeRange } from "../generated/typeshare-types";
 
 /**
  * Trends Bridge - Frontend interface for trends operations
@@ -10,5 +10,9 @@ export class TrendsBridge {
    */
   static async getUsageTrends(timeRange: TimeRange): Promise<UsageTrend[]> {
     return invoke<UsageTrend[]>("get_usage_trends", { timeRange });
+  }
+
+  static async getCostByModelTrends(timeRange: TimeRange): Promise<CostByModelTrend[]> {
+    return invoke<CostByModelTrend[]>("get_cost_by_model_trends", { timeRange });
   }
 }

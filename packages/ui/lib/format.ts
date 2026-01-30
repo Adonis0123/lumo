@@ -75,6 +75,14 @@ function formatWithUnits(
     }
   }
 
+  // Handle values between 0 and 1 (e.g. $0.003)
+  if (absValue > 0) {
+    // Use enough decimal places to show meaningful digits
+    const d = Math.max(decimals, -Math.floor(Math.log10(absValue)) + 1);
+    const formatted = absValue.toFixed(Math.min(d, 4));
+    return { value: sign + formatted, unit: "", full: sign + formatted };
+  }
+
   return { value: sign + "0", unit: "", full: sign + "0" };
 }
 

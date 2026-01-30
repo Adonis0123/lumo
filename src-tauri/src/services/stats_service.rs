@@ -31,11 +31,16 @@ impl StatsService {
             .iter()
             .map(|s| s.total_input_tokens + s.total_output_tokens)
             .sum();
+        let total_input_tokens: i64 = sessions.iter().map(|s| s.total_input_tokens).sum();
         let cache_tokens: i64 = sessions.iter().map(|s| s.total_cache_read_tokens).sum();
         let active_time_seconds: i64 = sessions.iter().map(|s| s.duration_ms / 1000).sum();
 
-        let cache_percentage = if total_tokens > 0 {
-            (cache_tokens as f64 / total_tokens as f64) * 100.0
+        // Cache hit rate = cache_read / (cache_read + input)
+        // input_tokens and cache_read_tokens are independent fields,
+        // so total effective input = cache_read + input
+        let cache_denominator = cache_tokens + total_input_tokens;
+        let cache_percentage = if cache_denominator > 0 {
+            (cache_tokens as f64 / cache_denominator as f64) * 100.0
         } else {
             0.0
         };

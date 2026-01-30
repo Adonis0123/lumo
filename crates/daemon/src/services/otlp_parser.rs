@@ -27,6 +27,16 @@ pub fn parse_metrics(request: &ExportMetricsServiceRequest) -> Vec<NewMetric> {
         for scope_metrics in &resource_metrics.scope_metrics {
             for metric in &scope_metrics.metrics {
                 let metric_name = &metric.name;
+                let metric_unit = if metric.unit.is_empty() {
+                    None
+                } else {
+                    Some(metric.unit.clone())
+                };
+                let metric_description = if metric.description.is_empty() {
+                    None
+                } else {
+                    Some(metric.description.clone())
+                };
 
                 // Handle different metric data types
                 if let Some(data) = &metric.data {
@@ -43,6 +53,8 @@ pub fn parse_metrics(request: &ExportMetricsServiceRequest) -> Vec<NewMetric> {
                                     value,
                                     &attrs,
                                     resource_json.as_deref(),
+                                    metric_unit.as_deref(),
+                                    metric_description.as_deref(),
                                 ));
                             }
                         }
@@ -58,6 +70,8 @@ pub fn parse_metrics(request: &ExportMetricsServiceRequest) -> Vec<NewMetric> {
                                     value,
                                     &attrs,
                                     resource_json.as_deref(),
+                                    metric_unit.as_deref(),
+                                    metric_description.as_deref(),
                                 ));
                             }
                         }
@@ -73,6 +87,8 @@ pub fn parse_metrics(request: &ExportMetricsServiceRequest) -> Vec<NewMetric> {
                                     value,
                                     &attrs,
                                     resource_json.as_deref(),
+                                    metric_unit.as_deref(),
+                                    metric_description.as_deref(),
                                 ));
                             }
                         }
@@ -177,6 +193,8 @@ fn create_metric(
     value: f64,
     attrs: &std::collections::HashMap<String, String>,
     resource: Option<&str>,
+    unit: Option<&str>,
+    description: Option<&str>,
 ) -> NewMetric {
     NewMetric {
         id: Uuid::new_v4().to_string(),
@@ -197,6 +215,10 @@ fn create_metric(
         terminal_type: attrs.get("terminal.type").cloned(),
         app_version: attrs.get("app.version").cloned(),
         resource: resource.map(String::from),
+        user_id: attrs.get("user.id").cloned(),
+        user_email: attrs.get("user.email").cloned(),
+        unit: unit.map(String::from),
+        description: description.map(String::from),
     }
 }
 
@@ -237,5 +259,9 @@ fn create_event(
         terminal_type: attrs.get("terminal.type").cloned(),
         app_version: attrs.get("app.version").cloned(),
         resource: resource.map(String::from),
+        user_id: attrs.get("user.id").cloned(),
+        user_email: attrs.get("user.email").cloned(),
+        event_sequence: attrs.get("event.sequence").and_then(|s| s.parse().ok()),
+        tool_result_size_bytes: attrs.get("tool_result_size_bytes").and_then(|s| s.parse().ok()),
     }
 }

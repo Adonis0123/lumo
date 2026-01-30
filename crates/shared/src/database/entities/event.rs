@@ -35,6 +35,10 @@ pub struct EventRow {
     pub app_version: Option<String>,
     pub resource: Option<String>,
     pub received_at: String,
+    pub user_id: Option<String>,
+    pub user_email: Option<String>,
+    pub event_sequence: Option<i64>,
+    pub tool_result_size_bytes: Option<i64>,
 }
 
 /// Event entity for internal use
@@ -87,6 +91,14 @@ pub struct Event {
     pub terminal_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub app_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_sequence: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_result_size_bytes: Option<i64>,
     pub received_at: String,
 }
 
@@ -119,6 +131,10 @@ pub struct NewEvent {
     pub terminal_type: Option<String>,
     pub app_version: Option<String>,
     pub resource: Option<String>,
+    pub user_id: Option<String>,
+    pub user_email: Option<String>,
+    pub event_sequence: Option<i64>,
+    pub tool_result_size_bytes: Option<i64>,
 }
 
 impl From<EventRow> for Event {
@@ -149,6 +165,10 @@ impl From<EventRow> for Event {
             organization_id: row.organization_id,
             terminal_type: row.terminal_type,
             app_version: row.app_version,
+            user_id: row.user_id,
+            user_email: row.user_email,
+            event_sequence: row.event_sequence,
+            tool_result_size_bytes: row.tool_result_size_bytes,
             received_at: row.received_at,
         }
     }

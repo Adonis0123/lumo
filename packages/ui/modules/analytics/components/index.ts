@@ -1,5 +1,8 @@
-export { RestReminder } from "./rest-reminder";
-export { EfficiencyScorecard } from "./efficiency-scorecard";
-export { SessionPatterns } from "./session-patterns";
-export { CostInsights } from "./cost-insights";
-export { WeeklySummary } from "./weekly-summary";
+export { PerformanceRadar } from "./performance-radar";
+export { CacheHitInsight } from "./cache-hit-insight";
+export { PeakHoursChart } from "./peak-hours-chart";
+export { ModelMix } from "./model-mix";
+export { TokenBreakdown } from "./token-breakdown";
+export { SessionLengthDistribution } from "./session-length-distribution";
+export { ErrorRateLiquid } from "./error-rate-liquid";
+export { TokenModelChart } from "./token-model-chart";

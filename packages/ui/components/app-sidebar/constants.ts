@@ -1,4 +1,11 @@
-import { LayoutDashboard, History, BarChart3, Settings } from "lucide-react";
+import {
+  LayoutDashboard,
+  History,
+  Wrench,
+  BarChart3,
+  Sparkles,
+  Settings,
+} from "lucide-react";
 import type { NavItem } from "./types";
 
 export const NAV_ITEMS = [
@@ -13,9 +20,19 @@ export const NAV_ITEMS = [
     icon: History,
   },
   {
+    id: "tools",
+    label: "Tools",
+    icon: Wrench,
+  },
+  {
     id: "analytics",
     label: "Analytics",
     icon: BarChart3,
+  },
+  {
+    id: "wrapped",
+    label: "Wrapped",
+    icon: Sparkles,
   },
 ] as const satisfies readonly NavItem[];
 

@@ -30,9 +30,12 @@ anyhow.workspace = true
 chrono.workspace = true
 
 # Tauri-specific dependencies (not in workspace)
-tauri = { version = "2.9.5", features = [] }
+tauri = { version = "2.9.5", features = ["image-png"] }
 tauri-plugin-log = "2"
 dirs = "5"
 
 # Shared library
 shared = { path = "../crates/shared" }
+base64 = "0.22"
+tauri-plugin-clipboard-manager = "2.3.2"
+tauri-plugin-dialog = "2.6.0"

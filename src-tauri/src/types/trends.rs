@@ -17,3 +17,13 @@ pub struct UsageTrend {
     pub cache_read_tokens: i32,
     pub cache_creation_tokens: i32,
 }
+
+/// Cost trend data point grouped by model
+#[typeshare]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CostByModelTrend {
+    pub date: String,
+    pub model: String,
+    pub cost: f32,
+}

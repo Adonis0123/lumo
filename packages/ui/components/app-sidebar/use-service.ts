@@ -7,13 +7,17 @@ import type { UseServiceReturn } from "./types";
 const ROUTE_MAP: Record<string, string> = {
   dashboard: "/",
   sessions: "/sessions",
+  tools: "/tools",
   analytics: "/analytics",
+  wrapped: "/wrapped",
   settings: "/settings",
 } as const;
 
 const NAV_ROUTES = [
   { prefix: "/sessions", id: "sessions" },
+  { prefix: "/tools", id: "tools" },
   { prefix: "/analytics", id: "analytics" },
+  { prefix: "/wrapped", id: "wrapped" },
   { prefix: "/settings", id: "settings" },
 ] as const;
 

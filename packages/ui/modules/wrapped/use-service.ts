@@ -6,7 +6,7 @@ import { WrappedBridge } from "@/src/bridges/wrapped-bridge";
 import { WrappedPeriod } from "@/src/generated/typeshare-types";
 
 export function useService() {
-  const [period, setPeriod] = useState<WrappedPeriod>(WrappedPeriod.All);
+  const [period, setPeriod] = useState<WrappedPeriod>(WrappedPeriod.Today);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["wrapped-data", period],

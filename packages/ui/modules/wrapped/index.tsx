@@ -2,10 +2,16 @@
 
 import { useRef } from "react";
 import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
 import { CardError } from "@/components/card-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { WrappedPeriod } from "@/src/generated/typeshare-types";
 import {
   HeroStat,
@@ -15,7 +21,7 @@ import {
   CostCard,
   CodingStreak,
   PeakHour,
-  LanguageCloud,
+  TokenBreakdownChart,
   ShareButton,
 } from "./components";
 import { useService } from "./use-service";
@@ -28,20 +34,20 @@ export function Wrapped() {
     <div className="flex h-full flex-col overflow-hidden">
       <PageHeader title="Wrapped">
         <div className="flex items-center gap-2">
-          <Button
-            variant={period === WrappedPeriod.Month ? "default" : "outline"}
-            size="sm"
-            onClick={() => setPeriod(WrappedPeriod.Month)}
+          <Select
+            value={period}
+            onValueChange={(v) => setPeriod(v as WrappedPeriod)}
           >
-            This Month
-          </Button>
-          <Button
-            variant={period === WrappedPeriod.All ? "default" : "outline"}
-            size="sm"
-            onClick={() => setPeriod(WrappedPeriod.All)}
-          >
-            All Time
-          </Button>
+            <SelectTrigger className="w-32 h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={WrappedPeriod.Today}>Today</SelectItem>
+              <SelectItem value={WrappedPeriod.Week}>This Week</SelectItem>
+              <SelectItem value={WrappedPeriod.Month}>This Month</SelectItem>
+              <SelectItem value={WrappedPeriod.All}>All Time</SelectItem>
+            </SelectContent>
+          </Select>
           {data && <ShareButton targetRef={cardRef} />}
         </div>
       </PageHeader>
@@ -78,9 +84,9 @@ export function Wrapped() {
 
                 <Separator />
 
-                {/* Language bars skeleton */}
+                {/* Token breakdown skeleton */}
                 <div className="pt-4 space-y-2">
-                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-3 w-28" />
                   {Array.from({ length: 4 }, (_, i) => (
                     <div key={i} className="flex items-center gap-3">
                       <Skeleton className="h-4 w-24" />
@@ -88,7 +94,7 @@ export function Wrapped() {
                         className="h-6 flex-1"
                         style={{ width: `${80 - i * 15}%` }}
                       />
-                      <Skeleton className="h-3 w-10" />
+                      <Skeleton className="h-3 w-12" />
                     </div>
                   ))}
                 </div>
@@ -127,7 +133,7 @@ export function Wrapped() {
                   <Separator />
 
                   <div className="pt-4">
-                    <LanguageCloud data={data} />
+                    <TokenBreakdownChart data={data} />
                   </div>
                 </div>
               </div>

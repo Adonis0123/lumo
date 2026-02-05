@@ -6,7 +6,7 @@ use anyhow::Result;
 use chrono::{Datelike, Local, NaiveDate, TimeZone};
 use sqlx::SqlitePool;
 
-use crate::types::{format_model_display_name, LanguageRank, WrappedData, WrappedPeriod};
+use crate::types::{format_model_display_name, TokenBreakdown, WrappedData, WrappedPeriod};
 
 /// Service for wrapped report operations
 pub struct WrappedService;
@@ -37,8 +37,8 @@ impl WrappedService {
         let (peak_hour, peak_hour_label) =
             Self::get_peak_hour(pool, start_time, end_time).await?;
 
-        // Top languages
-        let top_languages = Self::get_top_languages(pool, start_time, end_time).await?;
+        // Token breakdown
+        let token_breakdown = Self::get_token_breakdown(pool, start_time, end_time).await?;
 
         // Cost sparkline (daily costs)
         let cost_sparkline = Self::get_cost_sparkline(pool, start_time, end_time).await?;
@@ -58,7 +58,7 @@ impl WrappedService {
             longest_streak_days: longest_streak,
             peak_hour,
             peak_hour_label,
-            top_languages,
+            token_breakdown,
             daily_avg_cost,
             cost_sparkline,
         })
@@ -256,37 +256,41 @@ impl WrappedService {
         }
     }
 
-    async fn get_top_languages(
+    async fn get_token_breakdown(
         pool: &SqlitePool,
         start_time: i64,
         end_time: i64,
-    ) -> Result<Vec<LanguageRank>> {
-        let rows: Vec<LangRow> = sqlx::query_as(
+    ) -> Result<TokenBreakdown> {
+        let row: Option<TokenBreakdownRow> = sqlx::query_as(
             r#"
             SELECT
-                COALESCE(language, 'unknown') as language,
-                CAST(SUM(value) AS INTEGER) as count
-            FROM metrics
-            WHERE name = 'claude_code.code_edit_tool.decision'
-                AND timestamp >= ? AND timestamp <= ?
-                AND language IS NOT NULL
-            GROUP BY language
-            ORDER BY count DESC
-            LIMIT 5
+                COALESCE(SUM(input_tokens), 0) as input_tokens,
+                COALESCE(SUM(output_tokens), 0) as output_tokens,
+                COALESCE(SUM(cache_read_tokens), 0) as cache_read_tokens,
+                COALESCE(SUM(cache_creation_tokens), 0) as cache_creation_tokens
+            FROM events
+            WHERE timestamp >= ? AND timestamp <= ?
+                AND name = 'claude_code.api_request'
             "#,
         )
         .bind(start_time)
         .bind(end_time)
-        .fetch_all(pool)
+        .fetch_optional(pool)
         .await?;
 
-        Ok(rows
-            .into_iter()
-            .map(|r| LanguageRank {
-                language: r.language,
-                count: r.count as i32,
+        Ok(row
+            .map(|r| TokenBreakdown {
+                input_tokens: r.input_tokens as i32,
+                output_tokens: r.output_tokens as i32,
+                cache_read_tokens: r.cache_read_tokens as i32,
+                cache_creation_tokens: r.cache_creation_tokens as i32,
             })
-            .collect())
+            .unwrap_or(TokenBreakdown {
+                input_tokens: 0,
+                output_tokens: 0,
+                cache_read_tokens: 0,
+                cache_creation_tokens: 0,
+            }))
     }
 
     async fn get_cost_sparkline(
@@ -319,6 +323,14 @@ impl WrappedService {
         let end_time = now.timestamp_millis();
 
         let start = match period {
+            WrappedPeriod::Today => now
+                .date_naive()
+                .and_hms_opt(0, 0, 0)
+                .unwrap(),
+            WrappedPeriod::Week => (now - chrono::Duration::days(7))
+                .date_naive()
+                .and_hms_opt(0, 0, 0)
+                .unwrap(),
             WrappedPeriod::Month => now
                 .date_naive()
                 .with_day(1)
@@ -326,7 +338,6 @@ impl WrappedService {
                 .and_hms_opt(0, 0, 0)
                 .unwrap(),
             WrappedPeriod::All => {
-                // Go back 10 years as "all time"
                 NaiveDate::from_ymd_opt(2020, 1, 1)
                     .unwrap()
                     .and_hms_opt(0, 0, 0)
@@ -387,9 +398,11 @@ struct HourRow {
 }
 
 #[derive(Debug, sqlx::FromRow)]
-struct LangRow {
-    language: String,
-    count: i64,
+struct TokenBreakdownRow {
+    input_tokens: i64,
+    output_tokens: i64,
+    cache_read_tokens: i64,
+    cache_creation_tokens: i64,
 }
 
 #[derive(Debug, sqlx::FromRow)]

@@ -10,17 +10,21 @@ use typeshare::typeshare;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum WrappedPeriod {
+    Today,
+    Week,
     Month,
     All,
 }
 
-/// Language ranking entry
+/// Token consumption breakdown
 #[typeshare]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LanguageRank {
-    pub language: String,
-    pub count: i32,
+pub struct TokenBreakdown {
+    pub input_tokens: i32,
+    pub output_tokens: i32,
+    pub cache_read_tokens: i32,
+    pub cache_creation_tokens: i32,
 }
 
 /// Aggregated wrapped data for all cards
@@ -39,7 +43,7 @@ pub struct WrappedData {
     pub longest_streak_days: i32,
     pub peak_hour: i32,
     pub peak_hour_label: String,
-    pub top_languages: Vec<LanguageRank>,
+    pub token_breakdown: TokenBreakdown,
     pub daily_avg_cost: f32,
     pub cost_sparkline: Vec<f32>,
 }

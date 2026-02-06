@@ -1,5 +1,6 @@
 pub mod analytics_commands;
 pub mod claude_session_commands;
+pub mod daemon_commands;
 pub mod export_commands;
 pub mod session_commands;
 pub mod stats_commands;
@@ -10,6 +11,7 @@ pub mod wrapped_commands;
 
 pub use analytics_commands::*;
 pub use claude_session_commands::*;
+pub use daemon_commands::*;
 pub use export_commands::*;
 pub use session_commands::*;
 pub use stats_commands::*;
@@ -56,6 +58,8 @@ macro_rules! app_commands {
             commands::get_wrapped_data,
             // Export commands
             commands::save_image_to_path,
+            // Daemon commands
+            commands::get_daemon_status,
         ]
     };
 }

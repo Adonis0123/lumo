@@ -14,7 +14,7 @@ export function Overview() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <PageHeader title="Overview" daemonStatus="connected">
+      <PageHeader title="Overview">
         <TimeRangeTabs value={timeRange} onChange={setTimeRange} />
       </PageHeader>
 

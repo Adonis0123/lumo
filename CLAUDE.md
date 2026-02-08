@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Lumo is a Claude Code usage monitoring application that collects telemetry data via OpenTelemetry Protocol (OTLP) and displays it in a desktop dashboard. The architecture consists of:
+Lumo is a Claude Code usage monitoring application that collects telemetry data via OpenTelemetry Protocol (OTLP) and displays it in a desktop overview. The architecture consists of:
 
 1. **Daemon** (`crates/daemon/`): OTLP receiver service that collects metrics/events from Claude Code
 2. **Tauri App** (`src-tauri/`): Desktop application shell with native OS integration
-3. **Frontend** (`packages/ui/`): React-based dashboard UI (pnpm workspace package `@lumo/ui`)
+3. **Frontend** (`packages/ui/`): React-based overview UI (pnpm workspace package `@lumo/ui`)
 4. **Shared Library** (`crates/shared/`): Common database layer used by daemon and Tauri app
 
 ## Module Documentation
@@ -47,7 +47,7 @@ Claude Code (with OTLP exporter)
          │
          ▼
 ┌───────────────────┐
-│  React Dashboard  │ ← Next.js frontend
+│  React Overview  │ ← Next.js frontend
 │  (packages/ui)    │
 └───────────────────┘
 ```
@@ -74,7 +74,7 @@ Claude Code (with OTLP exporter)
 
 ### Frontend Package
 
-**UI** (`packages/ui/`): Next.js dashboard
+**UI** (`packages/ui/`): Next.js overview
 - Next.js 16 with App Router (SSG mode)
 - TanStack Query + Tauri IPC for data fetching
 - Tailwind CSS v4 + shadcn/ui components

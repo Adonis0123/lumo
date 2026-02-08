@@ -5,7 +5,7 @@
 <h1 align="center">Lumo</h1>
 
 <p align="center">
-  A local-first desktop dashboard for tracking Claude Code usage.<br/>
+  A local-first desktop overview for tracking Claude Code usage.<br/>
   Cost, tokens, sessions, and time — all from your own machine.
 </p>
 
@@ -51,7 +51,7 @@ but to provide clear visibility into usage patterns, cost, and time.
 
 ## Features
 
-### Dashboard
+### Overview
 
 An at-a-glance overview of your Claude Code usage:
 
@@ -62,7 +62,7 @@ An at-a-glance overview of your Claude Code usage:
 - Productivity-oriented metrics such as code edit accept rate
 
 <p align="center">
-  <img src="docs/images/dashboard.jpg" width="800" />
+  <img src="docs/images/overview.jpg" width="800" />
 </p>
 
 ---

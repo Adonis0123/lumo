@@ -5,7 +5,7 @@ import { NAV_ITEMS } from "./constants";
 import type { UseServiceReturn } from "./types";
 
 const ROUTE_MAP: Record<string, string> = {
-  dashboard: "/",
+  overview: "/",
   sessions: "/sessions",
   tools: "/tools",
   analytics: "/analytics",
@@ -20,13 +20,13 @@ const NAV_ROUTES = [
 ] as const;
 
 function resolveActiveItem(pathname: string): string {
-  if (pathname === "/") return "dashboard";
+  if (pathname === "/") return "overview";
   for (const route of NAV_ROUTES) {
     if (pathname === route.prefix || pathname.startsWith(route.prefix + "/")) {
       return route.id;
     }
   }
-  return "dashboard";
+  return "overview";
 }
 
 export function useService(): UseServiceReturn {

@@ -9,8 +9,8 @@ import type { NavItem } from "./types";
 
 export const NAV_ITEMS = [
   {
-    id: "dashboard",
-    label: "Dashboard",
+    id: "overview",
+    label: "Overview",
     icon: LayoutDashboard,
   },
   {

@@ -15,11 +15,8 @@ jobs:
           - platform: 'macos-latest'
             args: '--target aarch64-apple-darwin'
             rust_target: 'aarch64-apple-darwin'
-          - platform: 'macos-latest'
-            args: '--target x86_64-apple-darwin'
-            rust_target: 'x86_64-apple-darwin'
           - platform: 'ubuntu-22.04'
-            args: ''
+            args: '--bundles appimage,deb'
             rust_target: 'x86_64-unknown-linux-gnu'
 
     runs-on: ${{ matrix.platform }}
@@ -67,8 +64,21 @@ jobs:
       - name: Install system dependencies (Ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
         run: |
+          set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y patchelf librsvg2-dev libgtk-3-dev libsoup-3.0-dev
+
+          if apt-cache show libwebkit2gtk-4.1-dev >/dev/null 2>&1; then
+            sudo apt-get install -y libwebkit2gtk-4.1-dev
+          else
+            sudo apt-get install -y libwebkit2gtk-4.0-dev
+          fi
+
+          if apt-cache show libayatana-appindicator3-dev >/dev/null 2>&1; then
+            sudo apt-get install -y libayatana-appindicator3-dev
+          else
+            sudo apt-get install -y libappindicator3-dev
+          fi
 
       - name: Install typeshare-cli
         run: cargo install typeshare-cli

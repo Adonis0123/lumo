@@ -1,5 +1,5 @@
 {
-  "identifier": "com.tauri.dev",
+  "identifier": "com.zhnd.lumo",
   "build": {
     "beforeBuildCommand": "pnpm build"
   }

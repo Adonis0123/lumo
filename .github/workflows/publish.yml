@@ -20,7 +20,7 @@ jobs:
             rust_target: 'x86_64-apple-darwin'
           - platform: 'ubuntu-22.04'
             args: ''
-            rust_target: ''
+            rust_target: 'x86_64-unknown-linux-gnu'
 
     runs-on: ${{ matrix.platform }}
 
@@ -62,7 +62,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.rust_target }}
 
       - name: Install system dependencies (Ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
@@ -79,13 +79,18 @@ jobs:
       - name: Build daemon binary
         shell: bash
         run: |
-          if [ -n "${{ matrix.rust_target }}" ]; then
-            cargo build -p lumo-daemon --release --target ${{ matrix.rust_target }}
-            mkdir -p target/release
-            cp target/${{ matrix.rust_target }}/release/lumo-daemon target/release/lumo-daemon
-          else
-            cargo build -p lumo-daemon --release
-          fi
+          set -euo pipefail
+          cargo build -p lumo-daemon --release --target ${{ matrix.rust_target }}
+          mkdir -p target/release
+          cp target/${{ matrix.rust_target }}/release/lumo-daemon target/release/lumo-daemon
+          chmod +x target/release/lumo-daemon
+
+      - name: Verify daemon artifact for bundling
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f target/release/lumo-daemon
+          ls -lh target/release/lumo-daemon
 
       - uses: tauri-apps/tauri-action@v0
         env:

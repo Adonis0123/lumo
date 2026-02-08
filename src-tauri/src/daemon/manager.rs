@@ -177,6 +177,12 @@ impl DaemonManager {
             if bundled.exists() {
                 return Ok(bundled);
             }
+
+            // Some bundle layouts keep files under a `resources/` subdirectory.
+            let bundled_in_subdir = resource_dir.join("resources").join(DAEMON_BINARY);
+            if bundled_in_subdir.exists() {
+                return Ok(bundled_in_subdir);
+            }
         }
 
         // Dev fallback: workspace target directory.

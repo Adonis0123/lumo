@@ -25,7 +25,7 @@ export const NAV_ITEMS = [
   },
   {
     id: "analytics",
-    label: "Analytics",
+    label: "Performance",
     icon: BarChart3,
   },
   {

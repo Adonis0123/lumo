@@ -6,7 +6,8 @@ import {
   CacheHitTrend,
   CostEfficiencyTrend,
   PeakHoursChart,
-  ModelMix,
+  ErrorRateCard,
+  SessionLengthChart,
   TokenModelChart,
 } from "./components";
 import { useService } from "./use-service";
@@ -16,7 +17,7 @@ export function Analytics() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <PageHeader title="Analytics">
+      <PageHeader title="Performance">
         <TimeRangeTabs value={timeRange} onChange={setTimeRange} />
       </PageHeader>
 
@@ -28,8 +29,9 @@ export function Analytics() {
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <PeakHoursChart timeRange={timeRange} />
-            <ModelMix timeRange={timeRange} />
+            <ErrorRateCard timeRange={timeRange} />
           </div>
+          <SessionLengthChart timeRange={timeRange} />
           <TokenModelChart timeRange={timeRange} />
         </div>
       </div>

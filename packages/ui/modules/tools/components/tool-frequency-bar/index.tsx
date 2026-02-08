@@ -14,8 +14,6 @@ import { CardEmpty } from "@/components/card-empty";
 import { useService } from "./use-service";
 import type { ToolFrequencyBarProps } from "./types";
 
-const PALETTE_VARS = ["--chart-1", "--chart-2", "--chart-3", "--chart-4", "--chart-5"] as const;
-
 export function ToolFrequencyBar({ timeRange }: ToolFrequencyBarProps) {
   const { data, isLoading, error, refetch } = useService(timeRange);
 
@@ -31,70 +29,61 @@ export function ToolFrequencyBar({ timeRange }: ToolFrequencyBarProps) {
   if (data.length === 0)
     return <CardEmpty title="Tool Usage" message="No tool data" />;
 
-  const bgColor = resolveChartColor("--background");
-  const palette = PALETTE_VARS.map((v) => resolveChartColor(v));
-
   const sorted = [...data].sort((a, b) => b.count - a.count);
-
-  const treemapData = sorted.map((d, i) => ({
-    name: d.toolName,
-    value: d.count,
-    itemStyle: {
-      color: palette[i % palette.length],
-      borderColor: bgColor,
-      borderWidth: 2,
-      borderRadius: 4,
-    },
-  }));
+  const top = sorted.slice(0, 10);
 
   const option: EChartsOption = {
     tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
       borderColor: "transparent",
-      formatter: (params: any) => {
-        const item = data.find((d) => d.toolName === params.name);
-        if (!item) return params.name;
-        const rate =
-          item.count > 0
-            ? ((item.successes / item.count) * 100).toFixed(1)
-            : "0";
-        return `${params.name}<br/>Uses: ${item.count}<br/>Success: ${rate}%`;
+      formatter: (params: unknown) => {
+        const items = params as Array<{ name: string; value: number }>;
+        if (!Array.isArray(items) || items.length === 0) return "";
+        const item = top.find((d) => d.toolName === items[0].name);
+        if (!item) return items[0].name;
+        const rate = item.count > 0 ? (item.successes / item.count) * 100 : 0;
+        return `${item.toolName}<br/>Uses: ${item.count}<br/>Success: ${rate.toFixed(1)}%`;
       },
+    },
+    grid: { top: 10, right: 20, bottom: 0, left: 0, outerBoundsMode: "same" },
+    xAxis: {
+      type: "value",
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: {
+        lineStyle: { color: resolveChartColorAlpha("--border", 0.5) },
+      },
+    },
+    yAxis: {
+      type: "category",
+      data: top.map((d) => d.toolName),
+      axisLine: { show: false },
+      axisTick: { show: false },
     },
     series: [
       {
-        type: "treemap",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        data: treemapData,
-        roam: false,
-        nodeClick: false,
-        breadcrumb: { show: false },
-        label: {
-          show: true,
-          color: "#fff",
-          fontSize: 12,
-          formatter: "{b}\n{c}",
+        name: "Uses",
+        type: "bar",
+        data: top.map((d) => d.count),
+        barMaxWidth: 20,
+        itemStyle: {
+          color: resolveChartColor("--chart-1"),
+          borderRadius: [0, 4, 4, 0],
         },
-        levels: [
-          {
-            itemStyle: {
-              gapWidth: 2,
-            },
-          },
-        ],
       },
     ],
   };
 
+  const height = Math.max(220, top.length * 32 + 40);
+
   return (
     <Card className="gap-3 py-4">
       <CardHeader className="px-4">
-        <CardTitle>Tool Usage Frequency</CardTitle>
+        <CardTitle>Tool Usage (Top 10)</CardTitle>
       </CardHeader>
       <CardContent className="px-4">
-        <EChart option={option} style={{ height: 280 }} />
+        <EChart option={option} style={{ height }} />
       </CardContent>
     </Card>
   );

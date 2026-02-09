@@ -3,22 +3,26 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ClaudeSessionBridge } from "@/src/bridges/claude-session-bridge";
+import { foregroundRefreshQueryOptions } from "@/src/lib/query-options";
 import type { UseServiceReturn } from "./types";
 
 export function useService(): UseServiceReturn {
   const [selectedProjectPath, setSelectedProjectPath] = useState<string | null>(null);
 
   const projectsQuery = useQuery({
+    ...foregroundRefreshQueryOptions,
     queryKey: ["claude-projects"],
     queryFn: () => ClaudeSessionBridge.getProjects(),
   });
 
   const allSessionsQuery = useQuery({
+    ...foregroundRefreshQueryOptions,
     queryKey: ["claude-sessions"],
     queryFn: () => ClaudeSessionBridge.getAllSessions(),
   });
 
   const projectSessionsQuery = useQuery({
+    ...foregroundRefreshQueryOptions,
     queryKey: ["claude-sessions-by-project", selectedProjectPath],
     queryFn: () => ClaudeSessionBridge.getSessionsForProject(selectedProjectPath as string),
     enabled: !!selectedProjectPath,

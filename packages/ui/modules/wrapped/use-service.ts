@@ -4,12 +4,14 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { WrappedBridge } from "@/src/bridges/wrapped-bridge";
 import { WrappedPeriod } from "@/src/generated/typeshare-types";
+import { foregroundRefreshQueryOptions } from "@/src/lib/query-options";
 import type { UseServiceReturn } from "./types";
 
 export function useService(): UseServiceReturn {
   const [period, setPeriod] = useState<WrappedPeriod>(WrappedPeriod.Today);
 
   const { data, isLoading, error, refetch } = useQuery({
+    ...foregroundRefreshQueryOptions,
     queryKey: ["wrapped-data", period],
     queryFn: () => WrappedBridge.getWrappedData(period),
   });

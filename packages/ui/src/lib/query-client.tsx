@@ -19,7 +19,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // Prevent refetch on window focus in desktop app
+            // Keep defaults conservative; per-query refresh policy is configured in each module.
             refetchOnWindowFocus: false,
             // Retry once on failure
             retry: 1,

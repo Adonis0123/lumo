@@ -7,6 +7,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
 import { ClaudeSessionBridge } from "@/src/bridges/claude-session-bridge";
 import { useScrollToBottom } from "@/hooks/use-scroll-to-bottom";
+import { foregroundRefreshQueryOptions } from "@/src/lib/query-options";
 import { buildSessionHighlights, filterSessionMessages, isRenderableMessage } from "./libs";
 import type { UseServiceReturn } from "./types";
 
@@ -16,6 +17,7 @@ const TOP_PANEL_HIDE_THRESHOLD = 260;
 export function useService(sessionPath: string): UseServiceReturn {
   const router = useRouter();
   const detailQuery = useQuery({
+    ...foregroundRefreshQueryOptions,
     queryKey: ["claude-session-detail", sessionPath],
     queryFn: () => ClaudeSessionBridge.getSessionDetail(sessionPath),
     enabled: !!sessionPath,

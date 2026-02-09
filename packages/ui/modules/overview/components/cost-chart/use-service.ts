@@ -4,9 +4,11 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { TrendsBridge } from "@/src/bridges/trends-bridge";
 import type { TimeRange } from "@/src/generated/typeshare-types";
+import { foregroundRefreshQueryOptions } from "@/src/lib/query-options";
 
 export function useService(timeRange: TimeRange) {
   const { data: raw, isLoading, error, refetch } = useQuery({
+    ...foregroundRefreshQueryOptions,
     queryKey: ["cost-by-model-trends", timeRange],
     queryFn: () => TrendsBridge.getCostByModelTrends(timeRange),
   });

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { StatsBridge } from "@/src/bridges/stats-bridge";
 import type { SummaryStats, TimeRange } from "@/src/generated/typeshare-types";
+import { foregroundRefreshQueryOptions } from "@/src/lib/query-options";
 
 const DEFAULT_STATS: SummaryStats = {
   totalCost: 0,
@@ -23,6 +24,7 @@ const DEFAULT_STATS: SummaryStats = {
 
 export function useService(timeRange: TimeRange) {
   const { data, isLoading, error, refetch } = useQuery({
+    ...foregroundRefreshQueryOptions,
     queryKey: ["summary-stats", timeRange],
     queryFn: () => StatsBridge.getSummaryStats(timeRange),
   });

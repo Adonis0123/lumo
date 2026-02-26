@@ -5,20 +5,21 @@ use anyhow::{Context, Result};
 use tauri::Manager;
 
 use super::health::check_daemon_health;
-use super::plist;
+use super::platform::current;
 
 /// Expected daemon version — read from crates/daemon/Cargo.toml at compile time.
 const EXPECTED_VERSION: &str = env!("DAEMON_VERSION");
 
-/// Daemon binary name.
-const DAEMON_BINARY: &str = "lumo-daemon";
-
 pub struct DaemonManager {
     /// ~/.lumo/bin/lumo-daemon
     binary_path: PathBuf,
-    /// ~/Library/LaunchAgents/com.lumo.daemon.plist
-    plist_path: PathBuf,
-    /// ~/Library/Logs/com.lumo.daemon/
+    /// Platform-specific service config path
+    /// macOS: ~/Library/LaunchAgents/com.lumo.daemon.plist
+    /// Linux: ~/.config/systemd/user/lumo-daemon.service
+    service_config_path: PathBuf,
+    /// Platform-specific log directory
+    /// macOS: ~/Library/Logs/com.lumo.daemon/
+    /// Linux: ~/.lumo/logs/
     log_dir: PathBuf,
     /// User home directory
     home_dir: PathBuf,
@@ -31,16 +32,16 @@ impl DaemonManager {
         let home_dir =
             dirs::home_dir().context("Could not determine home directory")?;
 
-        let binary_path = home_dir.join(".lumo/bin").join(DAEMON_BINARY);
-        let plist_path = home_dir
-            .join("Library/LaunchAgents")
-            .join("com.lumo.daemon.plist");
-        let log_dir = home_dir.join("Library/Logs/com.lumo.daemon");
+        let binary_path = home_dir
+            .join(".lumo/bin")
+            .join(current::daemon_binary_name());
+        let service_config_path = current::service_config_path(&home_dir);
+        let log_dir = current::log_dir(&home_dir);
         let source_binary = Self::resolve_source_binary(app_handle)?;
 
         Ok(Self {
             binary_path,
-            plist_path,
+            service_config_path,
             log_dir,
             home_dir,
             source_binary,
@@ -68,8 +69,12 @@ impl DaemonManager {
         if self.binary_path.exists() && self.is_executable() {
             // Binary exists but service is not running — try to load.
             log::info!("Daemon binary found but not running. Starting...");
-            self.install_plist()?;
-            plist::load_service(&self.plist_path).await?;
+            current::install_service(
+                &self.binary_path,
+                &self.log_dir,
+                &self.home_dir,
+            )?;
+            current::start_service(&self.service_config_path).await?;
             return self.wait_for_health().await;
         }
 
@@ -78,7 +83,7 @@ impl DaemonManager {
         self.install().await
     }
 
-    /// Full install: copy binary, create plist, start service.
+    /// Full install: copy binary, create service config, start service.
     async fn install(&self) -> Result<()> {
         self.do_install().await
     }
@@ -86,23 +91,27 @@ impl DaemonManager {
     /// Upgrade: stop service, replace binary, restart.
     /// If installation fails, attempt to reload the old service.
     async fn upgrade(&self) -> Result<()> {
-        plist::unload_service(&self.plist_path).await?;
+        current::stop_service(&self.service_config_path).await?;
 
         if let Err(e) = self.do_install().await {
             log::error!("Upgrade failed, reloading old service: {}", e);
-            let _ = plist::load_service(&self.plist_path).await;
+            let _ = current::start_service(&self.service_config_path).await;
             return Err(e);
         }
 
         Ok(())
     }
 
-    /// Shared install steps: directories, binary, plist, load, health check.
+    /// Shared install steps: directories, binary, service config, start, health check.
     async fn do_install(&self) -> Result<()> {
         self.ensure_directories()?;
         self.install_binary()?;
-        self.install_plist()?;
-        plist::load_service(&self.plist_path).await?;
+        current::install_service(
+            &self.binary_path,
+            &self.log_dir,
+            &self.home_dir,
+        )?;
+        current::start_service(&self.service_config_path).await?;
         self.wait_for_health().await
     }
 
@@ -126,20 +135,6 @@ impl DaemonManager {
         }
 
         log::info!("Installed daemon binary to {}", self.binary_path.display());
-        Ok(())
-    }
-
-    /// Write (or overwrite) the launchd plist file.
-    fn install_plist(&self) -> Result<()> {
-        let content =
-            plist::render_plist(&self.binary_path, &self.log_dir, &self.home_dir);
-
-        if let Some(parent) = self.plist_path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-
-        std::fs::write(&self.plist_path, content)
-            .context("Failed to write launchd plist")?;
         Ok(())
     }
 
@@ -171,15 +166,17 @@ impl DaemonManager {
 
     /// Locate daemon binary: bundled resource (production) or target dir (dev).
     fn resolve_source_binary(app_handle: &tauri::AppHandle) -> Result<PathBuf> {
+        let daemon_name = current::daemon_binary_name();
+
         // Production: binary bundled as a Tauri resource.
         if let Ok(resource_dir) = app_handle.path().resource_dir() {
-            let bundled = resource_dir.join(DAEMON_BINARY);
+            let bundled = resource_dir.join(daemon_name);
             if bundled.exists() {
                 return Ok(bundled);
             }
 
             // Some bundle layouts keep files under a `resources/` subdirectory.
-            let bundled_in_subdir = resource_dir.join("resources").join(DAEMON_BINARY);
+            let bundled_in_subdir = resource_dir.join("resources").join(daemon_name);
             if bundled_in_subdir.exists() {
                 return Ok(bundled_in_subdir);
             }
@@ -191,12 +188,12 @@ impl DaemonManager {
             .expect("CARGO_MANIFEST_DIR has no parent")
             .to_path_buf();
 
-        let release_path = workspace_root.join("target/release").join(DAEMON_BINARY);
+        let release_path = workspace_root.join("target/release").join(daemon_name);
         if release_path.exists() {
             return Ok(release_path);
         }
 
-        let debug_path = workspace_root.join("target/debug").join(DAEMON_BINARY);
+        let debug_path = workspace_root.join("target/debug").join(daemon_name);
         if debug_path.exists() {
             return Ok(debug_path);
         }

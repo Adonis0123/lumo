@@ -1,0 +1,15 @@
+[Unit]
+Description=Lumo Daemon - OTLP telemetry receiver
+After=network.target
+
+[Service]
+Type=simple
+ExecStart={{DAEMON_PATH}}
+Environment=HOME={{HOME}}
+Restart=on-failure
+RestartSec=10
+StandardOutput=append:{{LOG_DIR}}/stdout.log
+StandardError=append:{{LOG_DIR}}/stderr.log
+
+[Install]
+WantedBy=default.target

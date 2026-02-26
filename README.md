@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/logo.png" width="80" style="border-radius: 18px;" />
+  <img src="docs/images/logo-rounded.svg" width="80" />
 </p>
 
 <h1 align="center">Lumo</h1>
@@ -67,7 +67,7 @@ On first launch, Lumo also attempts to configure Claude Code locally so telemetr
 ## Screenshots
 
 <p align="center">
-  <img src="docs/images/overview.jpg" width="900" alt="Lumo overview dashboard" style="border-radius: 12px;" />
+  <img src="docs/images/overview.jpg" width="900" alt="Lumo overview dashboard" />
 </p>
 
 Lumo provides a desktop dashboard for understanding Claude Code usage at a glance:
@@ -87,7 +87,7 @@ An at-a-glance overview of your Claude Code usage:
 - Time range switching (Today / Week / Month)
 
 <p align="center">
-  <img src="docs/images/overview.jpg" width="800" alt="Overview dashboard" style="border-radius: 12px;" />
+  <img src="docs/images/overview.jpg" width="800" alt="Overview dashboard" />
 </p>
 
 ---
@@ -105,7 +105,7 @@ Browse all Claude Code sessions with full message history:
 - Tool call/result blocks, markdown rendering, and raw payload inspection
 
 <p align="center">
-  <img src="docs/images/session.jpg" width="800" alt="Session detail view" style="border-radius: 12px;" />
+  <img src="docs/images/session.jpg" width="800" alt="Session detail view" />
 </p>
 
 ---
@@ -121,7 +121,7 @@ Inspect tool usage behavior across your Claude Code sessions:
 - Tool timeline trends across the selected period
 
 <p align="center">
-  <img src="docs/images/tools.jpg" width="800" alt="Tools analytics view" style="border-radius: 12px;" />
+  <img src="docs/images/tools.jpg" width="800" alt="Tools analytics view" />
 </p>
 
 ---
@@ -137,7 +137,7 @@ Usage insights derived directly from local telemetry:
 - Token usage by model
 
 <p align="center">
-  <img src="docs/images/performance.jpg" width="800" alt="Performance analytics view" style="border-radius: 12px;" />
+  <img src="docs/images/performance.jpg" width="800" alt="Performance analytics view" />
 </p>
 
 ---
@@ -155,7 +155,7 @@ A lightweight "wrapped" summary for your Claude Code habits:
 - Copy / save share card image
 
 <p align="center">
-  <img src="docs/images/claude-code-wrapped.png" width="420" alt="Claude Code Wrapped summary card" style="border-radius: 12px;" />
+  <img src="docs/images/claude-code-wrapped.png" width="420" alt="Claude Code Wrapped summary card" />
 </p>
 
 ---

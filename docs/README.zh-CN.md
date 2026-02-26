@@ -3,7 +3,7 @@
 > 本文档是 `/README.md` 的中文说明版本，内容以当前已实现功能为准。
 
 <p align="center">
-  <img src="./images/logo.png" width="80" alt="Lumo Logo" style="border-radius: 18px;" />
+  <img src="./images/logo-rounded.svg" width="80" alt="Lumo Logo" />
 </p>
 
 <h1 align="center">Lumo</h1>
@@ -55,7 +55,7 @@ Lumo 由两个部分组成：
 ## 截图
 
 <p align="center">
-  <img src="./images/overview.jpg" width="900" alt="Lumo 总览页面" style="border-radius: 12px;" />
+  <img src="./images/overview.jpg" width="900" alt="Lumo 总览页面" />
 </p>
 
 你可以在桌面端快速看到成本趋势、Token、会话数量、代码改动和活跃热力图等关键指标。
@@ -72,7 +72,7 @@ Lumo 由两个部分组成：
 - 时间范围切换（Today / Week / Month）
 
 <p align="center">
-  <img src="./images/overview.jpg" width="800" alt="Overview 页面" style="border-radius: 12px;" />
+  <img src="./images/overview.jpg" width="800" alt="Overview 页面" />
 </p>
 
 ---
@@ -88,7 +88,7 @@ Lumo 由两个部分组成：
 - 工具调用/结果块、Markdown 渲染、原始 payload 查看
 
 <p align="center">
-  <img src="./images/session.jpg" width="800" alt="Session 详情页" style="border-radius: 12px;" />
+  <img src="./images/session.jpg" width="800" alt="Session 详情页" />
 </p>
 
 ---
@@ -102,7 +102,7 @@ Lumo 由两个部分组成：
 - 工具时间线趋势（按时间范围）
 
 <p align="center">
-  <img src="./images/tools.jpg" width="800" alt="Tools 分析页面" style="border-radius: 12px;" />
+  <img src="./images/tools.jpg" width="800" alt="Tools 分析页面" />
 </p>
 
 ---
@@ -116,7 +116,7 @@ Lumo 由两个部分组成：
 - 按模型的 Token 使用分布
 
 <p align="center">
-  <img src="./images/performance.jpg" width="800" alt="Performance 页面" style="border-radius: 12px;" />
+  <img src="./images/performance.jpg" width="800" alt="Performance 页面" />
 </p>
 
 ---
@@ -131,7 +131,7 @@ Lumo 由两个部分组成：
 - 支持复制 / 保存分享卡片图片
 
 <p align="center">
-  <img src="./images/claude-code-wrapped.png" width="420" alt="Claude Code Wrapped 卡片" style="border-radius: 12px;" />
+  <img src="./images/claude-code-wrapped.png" width="420" alt="Claude Code Wrapped 卡片" />
 </p>
 
 ---

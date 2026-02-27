@@ -67,6 +67,7 @@ macro_rules! app_commands {
             commands::save_image_to_path,
             // Daemon commands
             commands::get_daemon_status,
+            commands::get_runtime_env_status,
             // Usage commands
             commands::get_usage_limits,
             commands::save_api_key,

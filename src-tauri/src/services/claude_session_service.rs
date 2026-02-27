@@ -6,6 +6,8 @@ use anyhow::{Context, Result};
 use std::fs;
 use std::path::PathBuf;
 
+#[cfg(target_os = "windows")]
+use super::WslRuntimeService;
 use crate::types::{
     ClaudeContentBlock, ClaudeMessage, ClaudeProjectSummary, ClaudeSession, ClaudeSessionDetail,
     ClaudeSessionIndex, ClaudeSessionStats, ClaudeToolUse, RawClaudeMessage,
@@ -23,13 +25,22 @@ impl ClaudeSessionService {
 
     /// Get the path to the projects directory
     fn get_projects_dir() -> Result<PathBuf> {
+        #[cfg(target_os = "windows")]
+        {
+            if let Some(wsl_projects_path) = WslRuntimeService::default_projects_path() {
+                if wsl_projects_path.exists() {
+                    return Ok(wsl_projects_path);
+                }
+            }
+        }
+
         Ok(Self::get_claude_dir()?.join("projects"))
     }
 
     /// Convert a project path to its .claude folder name format
     /// e.g., "/Users/zhnd/dev/projects/lumo" -> "-Users-zhnd-dev-projects-lumo"
     fn project_path_to_folder_name(project_path: &str) -> String {
-        project_path.replace('/', "-")
+        project_path.replace('/', "-").replace('\\', "-")
     }
 
     fn timestamp_to_rfc3339(ms: i64) -> Option<String> {
@@ -40,6 +51,32 @@ impl ClaudeSessionService {
         chrono::DateTime::parse_from_rfc3339(value)
             .map(|dt| dt.timestamp_millis())
             .unwrap_or(0)
+    }
+
+    /// Resolve a session path to a host-readable path. On Windows, this maps
+    /// Linux WSL paths (e.g. /home/user/...) to `\\\\wsl$\\...` when needed.
+    fn resolve_session_path(session_path: &str) -> PathBuf {
+        let direct = PathBuf::from(session_path);
+        if direct.exists() {
+            return direct;
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            if let Some(wsl_unc) = WslRuntimeService::linux_path_to_unc(session_path) {
+                if wsl_unc.exists() {
+                    return wsl_unc;
+                }
+            }
+        }
+
+        direct
+    }
+
+    fn normalize_session_path_for_match(path: &str) -> String {
+        Self::resolve_session_path(path)
+            .to_string_lossy()
+            .to_string()
     }
 
     /// Get all Claude projects with aggregate session stats
@@ -205,7 +242,7 @@ impl ClaudeSessionService {
 
     /// Get session detail including messages
     pub fn get_session_detail(session_path: &str) -> Result<ClaudeSessionDetail> {
-        let path = PathBuf::from(session_path);
+        let path = Self::resolve_session_path(session_path);
 
         if !path.exists() {
             anyhow::bail!("Session file not found: {}", session_path);
@@ -218,11 +255,16 @@ impl ClaudeSessionService {
         let session = if index_path.exists() {
             let content = fs::read_to_string(&index_path)?;
             let index: ClaudeSessionIndex = serde_json::from_str(&content)?;
+            let resolved_requested = Self::normalize_session_path_for_match(session_path);
 
             index
                 .entries
                 .into_iter()
-                .find(|e| e.full_path == session_path)
+                .find(|e| {
+                    e.full_path == session_path
+                        || Self::normalize_session_path_for_match(&e.full_path)
+                            == resolved_requested
+                })
                 .map(ClaudeSession::from)
         } else {
             None
@@ -538,13 +580,14 @@ impl ClaudeSessionService {
                                     .get("tool_use_id")
                                     .and_then(|v| v.as_str())
                                     .map(String::from);
-                                let output = obj.get("content").or_else(|| obj.get("output")).map(|v| {
-                                    if let Some(s) = v.as_str() {
-                                        s.to_string()
-                                    } else {
-                                        serde_json::to_string(v).unwrap_or_default()
-                                    }
-                                });
+                                let output =
+                                    obj.get("content").or_else(|| obj.get("output")).map(|v| {
+                                        if let Some(s) = v.as_str() {
+                                            s.to_string()
+                                        } else {
+                                            serde_json::to_string(v).unwrap_or_default()
+                                        }
+                                    });
                                 let is_error = obj.get("is_error").and_then(|v| v.as_bool());
                                 let raw_json =
                                     tool_use_result.and_then(|v| serde_json::to_string(v).ok());
@@ -630,21 +673,23 @@ impl ClaudeSessionService {
                 .as_ref()
                 .map(|n| !n.trim().is_empty())
                 .unwrap_or(false),
-            "tool_result" => block
-                .output
-                .as_ref()
-                .map(|o| !o.trim().is_empty())
-                .unwrap_or(false)
-                || block
-                    .file_content
+            "tool_result" => {
+                block
+                    .output
                     .as_ref()
-                    .map(|c| !c.trim().is_empty())
+                    .map(|o| !o.trim().is_empty())
                     .unwrap_or(false)
-                || block
-                    .raw_json
-                    .as_ref()
-                    .map(|j| !j.trim().is_empty())
-                    .unwrap_or(false),
+                    || block
+                        .file_content
+                        .as_ref()
+                        .map(|c| !c.trim().is_empty())
+                        .unwrap_or(false)
+                    || block
+                        .raw_json
+                        .as_ref()
+                        .map(|j| !j.trim().is_empty())
+                        .unwrap_or(false)
+            }
             _ => false,
         }
     }

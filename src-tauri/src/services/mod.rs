@@ -13,6 +13,7 @@ mod tools_service;
 mod trends_service;
 mod usage_service;
 mod wrapped_service;
+mod wsl_runtime_service;
 
 pub use analytics_service::AnalyticsService;
 pub use claude_config_service::ClaudeConfigService;
@@ -23,3 +24,4 @@ pub use tools_service::ToolsService;
 pub use trends_service::TrendsService;
 pub use usage_service::UsageService;
 pub use wrapped_service::WrappedService;
+pub use wsl_runtime_service::WslRuntimeService;

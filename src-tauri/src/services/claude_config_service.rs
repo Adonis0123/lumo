@@ -1,24 +1,26 @@
 //! Claude Code configuration service
 //!
-//! Manages `~/.claude/settings.json` to configure OTEL telemetry export
-//! pointing at the Lumo daemon, and hooks for notification forwarding.
+//! Manages Claude settings files to configure OTEL telemetry export
+//! and hooks forwarding to the Lumo daemon.
 
 use anyhow::{Context, Result};
 use serde_json::{json, Map, Value};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-/// Environment variables that Lumo manages in Claude Code settings.
-const OTEL_ENV_VARS: &[(&str, &str)] = &[
+#[cfg(target_os = "windows")]
+use super::WslRuntimeService;
+
+/// Static OTEL environment variables that Lumo manages.
+const OTEL_STATIC_ENV_VARS: &[(&str, &str)] = &[
     ("CLAUDE_CODE_ENABLE_TELEMETRY", "1"),
     ("OTEL_METRICS_EXPORTER", "otlp"),
     ("OTEL_LOGS_EXPORTER", "otlp"),
     ("OTEL_EXPORTER_OTLP_PROTOCOL", "http/json"),
-    ("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318"),
 ];
 
 /// The command used by Lumo hooks — pipes hook stdin JSON to the daemon.
-/// Uses --noproxy to bypass any system proxy (e.g. SOCKS5) for localhost.
+/// Uses --noproxy to bypass any system proxy (for localhost delivery).
 const HOOK_COMMAND: &str =
     "curl -s --noproxy localhost -X POST http://localhost:4318/notify -H 'Content-Type: application/json' -d \"$(cat)\"";
 
@@ -26,52 +28,136 @@ const HOOK_COMMAND: &str =
 const HOOK_MARKER: &str = "localhost:4318/notify";
 
 /// Hook events that Lumo subscribes to.
-/// We omit matchers entirely so they fire on every occurrence of the event.
 const HOOK_EVENTS: &[&str] = &["Notification", "Stop", "SubagentStop"];
+
+#[derive(Debug, Clone)]
+struct SettingsTarget {
+    label: &'static str,
+    path: PathBuf,
+    optional: bool,
+}
 
 pub struct ClaudeConfigService;
 
 impl ClaudeConfigService {
-    fn settings_path() -> Result<PathBuf> {
+    fn local_settings_path() -> Result<PathBuf> {
         let home = dirs::home_dir().context("Could not find home directory")?;
         Ok(home.join(".claude").join("settings.json"))
     }
 
-    fn read_settings(path: &PathBuf) -> Result<Map<String, Value>> {
+    fn settings_targets() -> Result<Vec<SettingsTarget>> {
+        let local_path = Self::local_settings_path()?;
+        #[cfg(target_os = "windows")]
+        let mut targets = vec![SettingsTarget {
+            label: "local",
+            path: local_path.clone(),
+            optional: false,
+        }];
+        #[cfg(not(target_os = "windows"))]
+        let targets = vec![SettingsTarget {
+            label: "local",
+            path: local_path.clone(),
+            optional: false,
+        }];
+
+        #[cfg(target_os = "windows")]
+        {
+            if let Some(wsl_path) = WslRuntimeService::default_settings_path() {
+                if wsl_path != local_path {
+                    targets.push(SettingsTarget {
+                        label: "wsl-default",
+                        path: wsl_path,
+                        optional: true,
+                    });
+                }
+            }
+        }
+
+        Ok(targets)
+    }
+
+    fn read_settings(path: &Path) -> Result<Map<String, Value>> {
         if path.exists() {
-            let content = fs::read_to_string(path).context("Failed to read Claude settings")?;
-            serde_json::from_str(&content).context("Failed to parse Claude settings")
+            let content = fs::read_to_string(path)
+                .with_context(|| format!("Failed to read Claude settings: {}", path.display()))?;
+            serde_json::from_str(&content)
+                .with_context(|| format!("Failed to parse Claude settings: {}", path.display()))
         } else {
             Ok(Map::new())
         }
     }
 
-    fn write_settings(path: &PathBuf, root: &Map<String, Value>) -> Result<()> {
+    fn write_settings(path: &Path, root: &Map<String, Value>) -> Result<()> {
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).context("Failed to create ~/.claude directory")?;
+            fs::create_dir_all(parent).with_context(|| {
+                format!(
+                    "Failed to create Claude settings directory: {}",
+                    parent.display()
+                )
+            })?;
         }
+
         let content =
             serde_json::to_string_pretty(root).context("Failed to serialize Claude settings")?;
-        fs::write(path, content).context("Failed to write Claude settings")?;
+        fs::write(path, content)
+            .with_context(|| format!("Failed to write Claude settings: {}", path.display()))?;
         Ok(())
     }
 
-    /// Ensure Claude Code's settings.json has the required OTEL env vars.
-    /// Preserves all existing settings — only adds/updates the OTEL keys.
+    fn daemon_endpoint() -> String {
+        std::env::var("LUMO_SERVER_ADDRESS")
+            .map(|addr| format!("http://{}", addr))
+            .unwrap_or_else(|_| "http://localhost:4318".to_string())
+    }
+
+    /// Ensure Claude settings have required OTEL env vars for all supported targets.
     pub fn ensure_otel_config() -> Result<()> {
-        let path = Self::settings_path()?;
-        let mut root = Self::read_settings(&path)?;
+        let mut updated_any = false;
+
+        for target in Self::settings_targets()? {
+            match Self::ensure_otel_config_for_path(&target.path) {
+                Ok(updated) => {
+                    if updated {
+                        updated_any = true;
+                        log::info!(
+                            "Updated Claude Code OTEL config at {} ({})",
+                            target.path.display(),
+                            target.label
+                        );
+                    }
+                }
+                Err(e) if target.optional => {
+                    log::warn!(
+                        "Skipping optional Claude settings target {} ({}): {}",
+                        target.path.display(),
+                        target.label,
+                        e
+                    );
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        if !updated_any {
+            log::info!("Claude Code OTEL config already up to date");
+        }
+
+        Ok(())
+    }
+
+    fn ensure_otel_config_for_path(path: &Path) -> Result<bool> {
+        let mut root = Self::read_settings(path)?;
 
         let env_obj = root
             .entry("env")
             .or_insert_with(|| Value::Object(Map::new()));
-
         let env_map = env_obj
             .as_object_mut()
             .context("'env' field in Claude settings is not an object")?;
 
         let mut changed = false;
-        for &(key, value) in OTEL_ENV_VARS {
+
+        for &(key, value) in OTEL_STATIC_ENV_VARS {
             let expected = Value::String(value.to_string());
             if env_map.get(key) != Some(&expected) {
                 env_map.insert(key.to_string(), expected);
@@ -79,14 +165,18 @@ impl ClaudeConfigService {
             }
         }
 
-        if !changed {
-            log::info!("Claude Code OTEL config already up to date");
-            return Ok(());
+        let endpoint_key = "OTEL_EXPORTER_OTLP_ENDPOINT";
+        let endpoint_expected = Value::String(Self::daemon_endpoint());
+        if env_map.get(endpoint_key) != Some(&endpoint_expected) {
+            env_map.insert(endpoint_key.to_string(), endpoint_expected);
+            changed = true;
         }
 
-        Self::write_settings(&path, &root)?;
-        log::info!("Updated Claude Code OTEL config at {}", path.display());
-        Ok(())
+        if changed {
+            Self::write_settings(path, &root)?;
+        }
+
+        Ok(changed)
     }
 
     /// Check if a JSON value (at any nesting level) contains the Lumo hook marker.
@@ -99,22 +189,43 @@ impl ClaudeConfigService {
         }
     }
 
-    /// Ensure Claude Code's settings.json has hooks that forward events
-    /// to the Lumo daemon's `/notify` endpoint.
-    ///
-    /// Claude Code hooks use a three-level structure:
-    /// ```json
-    /// { "hooks": { "EventName": [ { "hooks": [ { "type": "command", "command": "..." } ] } ] } }
-    /// ```
-    /// - Level 1: event name → array of matcher groups
-    /// - Level 2: each matcher group has optional `matcher` + `hooks` array
-    /// - Level 3: each hook handler has `type`, `command`, etc.
-    ///
-    /// This method cleans up any old-format (flat) Lumo entries before
-    /// writing the correct nested format.
+    /// Ensure Claude settings have hooks that forward events to `/notify`.
     pub fn ensure_hooks_config() -> Result<()> {
-        let path = Self::settings_path()?;
-        let mut root = Self::read_settings(&path)?;
+        let mut updated_any = false;
+
+        for target in Self::settings_targets()? {
+            match Self::ensure_hooks_config_for_path(&target.path) {
+                Ok(updated) => {
+                    if updated {
+                        updated_any = true;
+                        log::info!(
+                            "Updated Claude Code hooks config at {} ({})",
+                            target.path.display(),
+                            target.label
+                        );
+                    }
+                }
+                Err(e) if target.optional => {
+                    log::warn!(
+                        "Skipping optional Claude settings hooks target {} ({}): {}",
+                        target.path.display(),
+                        target.label,
+                        e
+                    );
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        if !updated_any {
+            log::info!("Claude Code hooks config already up to date");
+        }
+
+        Ok(())
+    }
+
+    fn ensure_hooks_config_for_path(path: &Path) -> Result<bool> {
+        let mut root = Self::read_settings(path)?;
 
         let hooks_obj = root
             .entry("hooks")
@@ -140,28 +251,21 @@ impl ClaudeConfigService {
                 .or_insert_with(|| Value::Array(Vec::new()));
             let arr = event_arr
                 .as_array_mut()
-                .context(format!("hooks.{} is not an array", event_name))?;
+                .with_context(|| format!("hooks.{} is not an array", event_name))?;
 
-            // Check if the correct entry already exists
             if arr.contains(&expected_hook) {
                 continue;
             }
 
-            // Remove any old-format or malformed Lumo entries
             arr.retain(|entry| !Self::contains_hook_marker(entry));
-
-            // Add the correctly structured matcher group
             arr.push(expected_hook.clone());
             changed = true;
         }
 
-        if !changed {
-            log::info!("Claude Code hooks config already up to date");
-            return Ok(());
+        if changed {
+            Self::write_settings(path, &root)?;
         }
 
-        Self::write_settings(&path, &root)?;
-        log::info!("Updated Claude Code hooks config at {}", path.display());
-        Ok(())
+        Ok(changed)
     }
 }
